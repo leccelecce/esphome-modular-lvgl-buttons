@@ -44,6 +44,16 @@ sensor:
               format: "%.0f%%"
               args: ['id(wifi_signal_db_percent).state']
 
+  - platform: debug
+    free:
+      name: "Heap Free"
+    block:
+      name: "Heap Max Block"
+    min_free:
+      name: "Heap Min Free"
+    loop_time:
+      name: "Main Loop Time"
+
 binary_sensor:
   - platform: status
     name: "Status"
@@ -56,6 +66,13 @@ text_sensor:
     name: 'Last Restart'
     icon: mdi:clock
     entity_category: diagnostic
+
+
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+
+
 
   - platform: version
     id: esphome_version
