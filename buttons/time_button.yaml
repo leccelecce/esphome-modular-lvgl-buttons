@@ -28,12 +28,23 @@ lvgl:
               - button:
                   id: button_${uid}
                   bg_opa: TRANSP
+                  # 👇 stack children vertically
+                  layout: vertical
+                  align: center # center children vertically
+
                   widgets:
                     - label:
-                        id: time_label
+                        id: time_label1
+                        styles: date_style
+                        text: 'Monday'
+                    - label:
+                        id: time_label2
+                        styles: date_style
+                        text: '01 Jan'
+                    - label:
+                        id: time_label3
                         styles: time_style
-                        text: '12:00 pm'
-
+                        text: '12:34'                        
                   on_short_click:
                     then:
                       lvgl.page.show: ${click_page | default(main_page)}
