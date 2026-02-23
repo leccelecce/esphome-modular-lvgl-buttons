@@ -51,10 +51,18 @@ lvgl:
       bg_opa: cover
       pad_all: 1
 
+    - id: date_style
+      scrollbar_mode: "OFF"
+      text_font: nunito_24
+      text_color: $label_on_color
+      text_align: CENTER
+      align: center
+
     - id: time_style
       scrollbar_mode: "OFF"
-      text_font: $text_font
+      text_font: nunito_36
       text_color: $label_on_color
+      text_align: CENTER
       align: center
 
 select:
