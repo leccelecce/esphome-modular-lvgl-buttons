@@ -7,7 +7,7 @@ wifi:
   ap:
     password: "password"
 
-captive_portal:
+#captive_portal:
 
 web_server:
   port: 80
