@@ -1,6 +1,5 @@
 ---
 ota:
-  - platform: web_server
   - platform: esphome
     id: ota_state
     on_begin:
