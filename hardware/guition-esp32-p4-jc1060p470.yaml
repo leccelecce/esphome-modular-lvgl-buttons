@@ -22,6 +22,8 @@ esp32:
     type: esp-idf
     advanced:
       enable_idf_experimental_features: true
+    sdkconfig_options:
+      CONFIG_SPIRAM_XIP_FROM_PSRAM: y # JL TEMP FIX to avoid flickering screen during OTA      
 
 esp_ldo:
   - channel: 3
