@@ -48,10 +48,3 @@ lvgl:
                   on_short_click:
                     then:
                       lvgl.page.show: ${click_page | default(main_page)}
-
-script:
-  - id: !extend time_update
-    then:
-      - lvgl.label.update:
-          id: label_${uid}
-          text: !lambda 'return id(system_time).now().strftime("%l:%M %P");'
