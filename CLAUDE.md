@@ -45,6 +45,10 @@ esphome config example_code/SDL-lvgl-display_modular_480px.yaml
 - `common/fonts.yaml` — Nunito font family (sizes 12-72)
 - `hardware/` — one file per supported display device (27+)
 
+## LVGL Gotchas
+
+Read **LVGL_REFERENCE.md** for critical LVGL v8 behavior — especially image tiling, layout override rules, and the obj wrapper pattern for images.
+
 ## Known Issues
 
 - `shadow_width: 0` must be explicitly set in theme despite LVGL default

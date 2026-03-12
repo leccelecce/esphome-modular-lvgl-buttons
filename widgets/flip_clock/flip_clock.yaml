@@ -12,7 +12,7 @@
 #    font_size:
 
 font:
-  - file: "esphome-modular-lvgl-buttons/assets/fonts/gluqlo.ttf"
+  - file: "esphome-modular-lvgl-buttons/widgets/flip_clock/fonts/gluqlo.ttf"
     id: gluqlo_font
     size: ${font_size | default(80)}
     bpp: 8
@@ -112,7 +112,11 @@ script:
     then:
       - lvgl.label.update:
           id: flip_hour_label
-          text: !lambda 'return id(system_time).now().strftime("%-l");'
+          text: !lambda |-
+            int h = id(system_time).now().hour % 12;
+            if (h == 0) h = 12;
+            return std::to_string(h);
       - lvgl.label.update:
           id: flip_min_label
-          text: !lambda 'return id(system_time).now().strftime("%M");'
+          text: !lambda |-
+            return str_sprintf("%02d", id(system_time).now().minute);

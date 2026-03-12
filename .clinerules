@@ -31,8 +31,13 @@ esphome config example_code/SDL-lvgl-display_modular_480px.yaml  # single config
 bash testing/test_configs.sh  # all configs
 ```
 
+## LVGL Gotchas
+
+Read **LVGL_REFERENCE.md** for critical LVGL v8 behavior — especially image tiling, layout override rules, and the obj wrapper pattern for images.
+
 ## Key Files
 
+- `LVGL_REFERENCE.md` — LVGL v8 gotchas and patterns (image tiling fix, layouts, sizing)
 - `ARCHITECTURE.md` — Full architecture documentation
 - `buttons/switch_button.yaml` — Canonical button template
 - `common/theme_style.yaml` — LVGL theme system

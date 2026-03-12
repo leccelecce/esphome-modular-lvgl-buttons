@@ -23,6 +23,10 @@ Read [ARCHITECTURE.md](../ARCHITECTURE.md) for full details.
 3. State tracking section (`binary_sensor` or `text_sensor` from `platform: homeassistant`)
 4. Color updates in the state handler using `lvgl.widget.update`
 
+## LVGL Gotchas
+
+Read [LVGL_REFERENCE.md](../LVGL_REFERENCE.md) for critical LVGL v8 behavior — especially image tiling, layout override rules, and the obj wrapper pattern for images.
+
 ## Testing
 
 ```bash
