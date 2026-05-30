@@ -23,6 +23,13 @@ esp32:
     advanced:
       execute_from_psram: true
       enable_idf_experimental_features: true
+    sdkconfig_options:
+      # esp_hosted 2.12.7 (used with IDF 5.5+) creates a DMA mempool at boot.
+      # Default queue size of 20 requires ~47KB of contiguous internal DMA RAM
+      # which fails on P4. Reducing to 10 cuts this to ~32KB and is sufficient
+      # for normal WiFi throughput.
+      CONFIG_ESP_HOSTED_SDIO_TX_Q_SIZE: "10"
+      CONFIG_ESP_HOSTED_SDIO_RX_Q_SIZE: "10"
 
 psram:
   mode: hex
