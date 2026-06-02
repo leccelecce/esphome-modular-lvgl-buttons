@@ -24,6 +24,10 @@ esp32:
     advanced:
       execute_from_psram: true
     sdkconfig_options:
+      # Let normal malloc/new allocations use PSRAM as well. Without this,
+      # large std::string/std::vector allocations from MQTT payload handling
+      # stay in internal RAM and can abort the device during Frigate bursts.
+      CONFIG_SPIRAM_USE_MALLOC: "y"
       # esp_hosted 2.12.7 (used with IDF 5.5+) creates a DMA mempool at boot.
       # Default queue size of 20 requires ~47KB of contiguous internal DMA RAM
       # which fails on P4. Reducing to 10 cuts this to ~32KB and is sufficient
