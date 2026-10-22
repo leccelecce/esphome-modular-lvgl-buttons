@@ -102,7 +102,7 @@ light:
 
   - platform: esp32_rmt_led_strip
     id: status_led
-    rgb_order: GRB
+    channel_colors: GRB
     chipset: ws2812
     pin: GPIO26
     num_leds: 1
