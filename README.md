@@ -1,339 +1,379 @@
-# Modular Easy Button Screen for ESPHome + LVGL on Cheap Touchscreen Devices
+# esphome-modular-lvgl-buttons
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![ESPHome](https://img.shields.io/badge/ESPHome-2025.x-blue)](https://esphome.io)
+[![ESPHome](https://img.shields.io/badge/ESPHome-2026.7.0+-blue)](https://esphome.io)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Integration-41BDF5)](https://www.home-assistant.io/)
 
-A modular library for building beautiful, touch-enabled control panels using ESPHome and LVGL on ESP32 based touchscreen devices. Perfect for smart home dashboards, room controllers, lighting control, and information displays.
+A modular component library for building touchscreen smart home control panels using [ESPHome](https://esphome.io/) + [LVGL](https://lvgl.io/) on cheap ESP32 displays.
 
-## ✨ Features
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design rationale.
 
-- **Modular Design** - Mix and match components to build your perfect interface
-- **Home Assistant Integration** - Seamless control of your smart home devices
-- **Multiple Screen Sizes** - Support for displays from 2.8" to 10"
-- **Pre-built Components** - Ready-to-use buttons, pages, widgets, and sensors
-- **Weather Display** - 4-day forecast and current conditions from Home Assistant or direct from Pirate Weather
-- **Tide Information** - NOAA tide integration
-- **Solar Monitoring** - Solar panel monitoring widgets
-- **Boot Screen** - Professional loading screen with HA connection status
-- **Swipe Navigation** - Navigate between pages with touch gestures
-- **Light Controls** - Dimming, color temperature, and RGB color picker support
+---
 
-## 📱 Supported Screens
+## How it works
 
-### Guition Displays
+Each entity type lives in `ui/<type>/` and provides:
 
-| Model | Size | Resolution | Flash | Touch | Features | Link |
-|-------|------|------------|-------|-------|----------|------|
-| `ESP32-4848S040` | 4.0" | 480×480 | 16MB | Capacitive | 120V/220V relays, built-in 120V/220V power supply | [AliExpress](https://www.aliexpress.com/item/3256806436431838.html) |
-| `ESP32-JC8048W550` | 5.0" | 480×800 | 16MB | Capacitive | Qwiic (I2C) port, speaker | [AliExpress](https://www.aliexpress.com/item/3256806546911788.html) |
-| `ESP32-JC8048W535` | 3.5" | 480×320 | 16MB | Capacitive | USB-C | [AliExpress](https://www.aliexpress.com/item/3256806546911788.html) |
-| `ESP32-jc4827w543C` | 4.3" | 272×480 | 4MB | Capacitive | speaker, 4MB flash keep you code small| [AliExpress](https://www.aliexpress.com/item/3256806543342794.html) |
-| `ESP32-P4-JC4880P443` | 4.3" | 480×800 | 16MB | Capacitive | ESP32-P4 based, speaker, mic, USB-C | [AliExpress](https://www.aliexpress.com/item/3256809431944589.html) |
-| `ESP32-P4-JC1060P470` | 7" | 1024×600 | 16MB | Capacitive | ESP32-P4 based, USB-C | [surenoo.com](https://www.surenoo.com/products/23507762) |
-| `ESP32-P4-JC8012P4A1` | 8.0" | 800×1280 | 16MB | Capacitive | ESP32-P4 based, USB-C | [AliExpress](https://www.aliexpress.com/item/3256808075855498.html) |
-
-### Sunton Displays
-
-| Model | Size | Resolution | Flash | Touch | Features | Link |
-|-------|------|------------|-------|-------|----------|------|
-| `ESP32-8048S043` | 4.3" | 480×272 | 16MB | Capacitive | USB-C | [AliExpress](https://www.aliexpress.com/item/3256807713569037.html) |
-| `ESP32-8048S050` | 5.0" | 480×800 | 16MB | Capacitive | USB-C | [AliExpress](https://www.aliexpress.com/item/1005004952694042.html) |
-| `ESP32-8048S070` | 7.0" | 480×800 | 16MB | Capacitive | Large display, great for info displays, USB-C | [AliExpress](https://www.aliexpress.com/item/3256807882909237.html) |
-| `ESP32-2432S028` | 2.8" | 320×240 | 4MB | Capacitive | Micro USB, popular "Cheap Yellow Display" | [AliExpress](https://www.aliexpress.com/item/3256805607954786.html) |
-| `ESP32-2432S028R` | 2.8" | 320×240 | 4MB | Resistive | Micro USB, resistive touch variant | [AliExpress](https://www.aliexpress.com/item/3256805607954786.html) |
-| `ESP32-4827S032R` | 3.2" | 480×320 | 16MB | Resistive | USB-C | [AliExpress](https://www.aliexpress.com/item/3256806197292489.html) |
-
-### Waveshare Displays
-
-| Model | Size | Resolution | Flash | Touch | Features | Link |
-|-------|------|------------|-------|-------|----------|------|
-| `ESP32-S3-Touch-LCD-7` | 7.0" | 800×480 | 16MB | Capacitive | USB-C | [Waveshare](https://www.waveshare.com/esp32-s3-touch-lcd-7.htm) |
-| `ESP32-S3-Touch-LCD-7B` | 7.0" | 800×480 | 16MB | Capacitive | Variant B with different touch IC, USB-C | [Waveshare](https://www.waveshare.com/esp32-s3-touch-lcd-7b.htm) |
-| `ESP32-S3-Touch-LCD-4.3` | 4.3" | 800×480 | 16MB | Capacitive | USB-C | [Waveshare](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) |
-| `ESP32-S3-Touch-LCD-2.8C` | 2.8" | 320×240 | 16MB | Capacitive | USB-C, compact form factor | [Waveshare](https://www.waveshare.com/esp32-s3-touch-lcd-2.8.htm) |
-| `ESP32-S3-Touch-LCD-3.5B` | 3.5" | 320×480 | 8MB | Capacitive | USB-C | [Waveshare](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-3.5B) |
-| `ESP32-P4-WiFi6-Touch-LCD-7B` | 7.0" | 1024×600 | 32MB | Capacitive | speaker, mic, USB-C | [Waveshare](https://www.waveshare.com/esp32-p4-touch-lcd-7b.htm) |
-| `ESP32-P4-WiFi6-Touch-LCD-10.1` | 10.1" | 800×1280 | 32MB | Capacitive |  speaker, mic, USB-C | [Waveshare](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-10.1.htm) |
-| `ESP32-P4-WIFI6-Touch-LCD-4B` | 4.0" | 720×720 | 32MB | Capacitive | speaker, mic, 86mm panel form factor | [Waveshare](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm?sku=31416) |
-| `ESP32-P4-86-Panel-ETH-2RO` | 4.0" | 720×720 | 32MB | Capacitive | speaker, mic, eth, 86mm panel form factor | [Waveshare](https://www.waveshare.com/esp32-p4-wifi6-touch-lcd-4b.htm?sku=31570) |
-
-### Elecrow Displays
-
-| Model | Size | Resolution | Flash | Touch | Features | Link |
-|-------|------|------------|-------|-------|----------|------|
-| `CrowPanel DIS05035H` (v2.2) | 3.5" | 480×320 | 4MB | Resistive | USB-C | [Elecrow](https://www.elecrow.com/esp32-display-3-5-inch-hmi-display-spi-tft-lcd-touch-screen.html) |
-| `Elecrow ESP32 7inch` | 7.0" | 800×480 | 16MB | Capacitive | USB-C, wide viewing angle | [Elecrow](https://www.elecrow.com/esp32-display-7-inch-hmi-display-rgb-tft-lcd-touch-screen-support-lvgl.html) |
-
-### Other Devices
-
-| Model | Size | Resolution | Flash | Touch | Features | Link |
-|-------|------|------------|-------|-------|----------|------|
-| `ESP32-S3-Box-3` | 2.4" | 320×240 | 16MB | Capacitive | Espressif official dev kit with case | [Espressif](https://www.espressif.com/en/products/devkits/esp-box/overview) |
-| `LilyGo T-Display-S3` | 1.9" | 170×320 | 16MB | Capacitive | Compact form factor | [LilyGo](https://www.lilygo.cc/products/t-display-s3) |
-| `SDL Display` | Variable | Variable | N/A | Mouse | Desktop testing on Linux/MacOS | N/A |
-
-## 🧩 Available Components
-
-### Buttons (`buttons/`)
-
-| Component | Description |
-|-----------|-------------|
-| `switch_button.yaml` | Toggle switches and lights with on/off state |
-| `dimmer_light_button.yaml` | Light control with brightness slider |
-| `scene_button.yaml` | Trigger Home Assistant scenes |
-| `page_button.yaml` | Navigate between LVGL pages |
-| `time_button.yaml` | Display current time with page navigation |
-| `local_relay_button.yaml` | Control local GPIO relays |
-| `cover_button.yaml` | Control covers/blinds with position slider and 4-state visual feedback |
-| `sensor_button.yaml` | Display sensor values with icon, label, and live data |
-| `color_picker.yaml` | RGB color selection for lights |
-
-### Pages (`pages/`)
-
-| Component | Description |
-|-----------|-------------|
-| `info.yaml` | System information screen (ESPHome version, IP, MAC, WiFi) |
-| `light_color.yaml` | Advanced light control with color wheel, brightness, saturation, and color temperature modes |
-| `loading.yaml` | Boot screen with Home Assistant connection status |
-
-### Widgets (`widgets/`)
-
-| Component | Description |
-|-----------|-------------|
-| `swipe_navigation.yaml` | Enable swipe gestures for page navigation |
-
-### Sensors (`sensors/`)
-
-| Component | Description |
-|-----------|-------------|
-| `sensors_base.yaml` | Core sensors (WiFi, CPU temp, device info) |
-| `sensors_base-SDL.yaml` | Simplified sensors for SDL desktop testing |
-
-### Weather (`weather_homeassistant/`)
-
-| Component | Description |
-|-----------|-------------|
-| `weather_forecast_action.yaml` | 4-day weather forecast display |
-| `weather_today.yaml` | Current weather conditions |
-| `weather_icons_update.yaml` | Weather icon helper |
-
-### Common (`common/`)
-
-| Component | Description |
-|-----------|-------------|
-| `backlight_time.yaml` | Automatic backlight dimming based on time of day |
-| `color.yaml` | Color definitions and gradients |
-| `fonts.yaml` | Font configurations |
-| `mdi_glyph_substitutions.yaml` | Material Design Icon glyph mappings |
-| `ota.yaml` | Over-the-air update configuration |
-| `theme_style.yaml` | LVGL theme and styling definitions |
-| `time_homeassistant.yaml` | Time sync via Home Assistant |
-| `time_sntp.yaml` | Time sync via NTP servers |
-| `wifi.yaml` | WiFi configuration template |
-
-### Other Modules
-
-| Directory | Description |
-|-----------|-------------|
-| `tides/` | NOAA tides and currents display |
-| `solar/` | Solar panel monitoring widgets |
-| `assets/` | Images, icons, and fonts |
-| `custom_components/` | Custom ESPHome components (NOAA tides) |
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-ESPHome 2025.1 or later with LVGL support:
-
-```bash
-pip install esphome
+```
+ui/<type>/local.yaml    — tile for an ESPHome component on the same device
+ui/<type>/remote.yaml   — tile for a Home Assistant entity
+ui/<type>/detail.yaml   — full-screen detail page (complex types only)
 ```
 
-For SVG image support (optional):
+Your device YAML composes a panel by including one hardware file, the shared infrastructure, and one `!include` per tile. Everything internal (globals, scripts, detail page) is wired automatically.
+
+---
+
+## Quick start
+
+### 1. Prerequisites
+
+ESPHome 2026.7.0 or later (the `image:` component uses the new `platform: file` form introduced in 2026.7.0). For SVG image support (required by solar/tides modules):
 
 ```bash
 pip install cairosvg
 ```
 
-### Installation
-
-1. Clone this repository into your ESPHome configuration directory:
+### 2. Clone into your ESPHome config directory
 
 ```bash
+cd /config   # or wherever your ESPHome configs live
 git clone https://github.com/agillis/esphome-modular-lvgl-buttons.git
 ```
 
-2. Copy an example configuration for your display:
+### 3. Set up secrets
 
-```bash
-cp esphome-modular-lvgl-buttons/example_code/guition-esp32-s3-4848s040-display_modular.yaml my-display.yaml
-```
-
-3. Create a `secrets.yaml` file with your WiFi credentials:
+Create `secrets.yaml` in your ESPHome config root (one level above this repo):
 
 ```yaml
-wifi_ssid: "Your WiFi SSID"
-wifi_password: "Your WiFi Password"
+wifi_ssid: "your-ssid"
+wifi_password: "your-wifi-password"
+ap_password: "your-fallback-ap-password"
+latitude: 0.0000
+longitude: 0.0000
 ```
 
-4. Edit the configuration file to customize your device name and Home Assistant entities.
+### 4. Create your device config
 
-5. Build and deploy:
+Copy the closest example from `example_code/` and adapt it, or start from scratch:
+
+
+
+### 5. Flash
 
 ```bash
-esphome run my-display.yaml
+esphome run my-panel.yaml
 ```
 
-## 🏠 Home Assistant Integration
+---
 
-This project integrates seamlessly with Home Assistant. Once your device is running, it will automatically appear in Home Assistant's ESPHome integration.
+## Available entity types
 
-### Supported Entity Types
+| Type | local | remote | Detail page | Notes |
+|---|---|---|---|---|
+| [`light`](ui/light/README.md) | ✅ | ✅ | ✅ | RGB / CCT / brightness, capability auto-detected |
+| [`switch`](ui/switch/README.md) | ✅ | ✅ | — | Works with any toggleable HA entity |
+| [`sensor`](ui/sensor/README.md) | ✅ | ✅ | — | Configurable unit and decimal precision |
+| [`binary_sensor`](ui/binary_sensor/README.md) | ✅ | ✅ | — | Read-only — door, motion, leak |
+| [`text_sensor`](ui/text_sensor/README.md) | ✅ | ✅ | — | Display any string state or attribute |
+| [`button`](ui/button/README.md) | ✅ | ✅ | — | Momentary press — works with `script.*`, `scene.*` too |
+| [`climate`](ui/climate/README.md) | ✅ | ✅ | ✅ | Arc setpoint, mode + fan + swing dropdowns, capability auto-detected |
+| [`cover`](ui/cover/README.md) | ✅ | ✅ | ✅ | Blinds, shutters, gates, garage doors — statefull/stateless auto-detected |
+| `fan` | 🔜 | 🔜 | 🔜 | — |
+| `number` | 🔜 | 🔜 | 🔜 | Setpoints, PID targets |
+| `select` | 🔜 | 🔜 | 🔜 | Operating modes, option lists |
+| `media_player` | 🔜 | 🔜 | 🔜 | — |
+| `lock` | 🔜 | 🔜 | 🔜 | With PIN pad detail page |
 
-- **Lights** - On/off, brightness, color temperature, RGB color
-- **Switches** - Toggle any Home Assistant switch
-- **Scenes** - Trigger any Home Assistant scene
-- **Sensors** - Display sensor values (weather, temperature, etc.)
-- **Climate** - Thermostat control (via scenes or direct integration)
+Click any type name in the table above for its full variable reference and usage examples.
 
-### Using ESPHome Dashboard
+---
 
-The [ESPHome Dashboard Add-on](https://esphome.io/guides/getting_started_hassio/) is the easiest way to manage your ESPHome devices directly from Home Assistant.
+## Common variables (all entity types)
 
-### Using File Editor Add-on
+| Variable | Required | Description |
+|---|---|---|
+| `uid` | ✅ | Unique identifier — must be unique across your entire config |
+| `entity_id` | ✅ | ESPHome component ID (local) or HA entity e.g. `"light.foo"` (remote) |
+| `row` | ✅ | Grid row (0-based) |
+| `column` | ✅ | Grid column (0-based) |
+| `text` | ✅ | Tile label |
+| `icon` | ✅ | MDI icon glyph e.g. `$mdi_lightbulb` |
+| `row_span` | — | Rows to span (default: `1`) |
+| `column_span` | — | Columns to span (default: `1`) |
+| `page_id` | — | Parent page ID (default: `main_page`) |
 
-The [File Editor Add-on](https://github.com/home-assistant/addons/tree/master/configurator) allows you to edit ESPHome configurations directly in Home Assistant.
+---
 
-## 🖥️ Desktop Development with SDL
+## Grid layout
 
-The SDL display platform allows you to develop and test your UI on a desktop system running Linux or macOS. This is much faster than flashing to hardware for every change.
+Pages use LVGL's grid layout. `layout: NxM` creates N rows × M columns.
 
-### Setup
+| Layout | Tiles | Good for |
+|---|---|---|
+| `2x2` | 4 | Small displays |
+| `2x3` | 6 | Portrait or compact |
+| `3x3` | 9 | 480×480 square displays |
+| `4x4` | 16 | Large landscape displays |
 
-1. Install SDL2 development libraries:
+Tiles are placed with `row` and `column` (0-based). Use `row_span` / `column_span` to make a tile span multiple cells.
+
+### Multiple pages
+
+Add more pages to the `lvgl.pages` list, include `swipe_navigation.yaml` on each, and set `page_id` on tiles to route them to the right page:
+
+```yaml
+lvgl:
+  pages:
+  - id: main_page
+    layout: 3x3
+    styles: page_style
+    <<: !include esphome-modular-lvgl-buttons/common/swipe_navigation.yaml
+  - id: lights_page
+    layout: 2x3
+    styles: page_style
+    <<: !include esphome-modular-lvgl-buttons/common/swipe_navigation.yaml
+```
+
+---
+
+## Icons
+
+Icons use [Material Design Icons](https://materialdesignicons.com/) via substitution variables. Usage: `icon: $mdi_lightbulb`.
+
+The icon name must also be listed as a glyph in your device `font:` block — otherwise it will render as a blank square:
+
+```yaml
+font:
+- file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
+  id: mdi_icons_40
+  size: 40
+  bpp: 8
+  glyphs:
+  - $mdi_lightbulb
+  - $mdi_ceiling_light
+  - $mdi_thermostat
+  # ... add every icon you use
+```
+
+Each detail page type also requires specific glyphs — see the type's `README.md`.
+
+---
+
+## Adding your own images
+
+Every `image:` block in this repo uses the platform form introduced in ESPHome
+2026.7.0. If you add images in your own device YAML, the block **must be a list**
+whose entries each carry `platform: file`:
+
+```yaml
+image:
+  - platform: file
+    type: RGB565
+    transparency: alpha_channel
+    file: my_logo.png
+    id: my_logo
+    resize: 100x100
+```
+
+Two failure modes are worth knowing, because neither error message points at the
+file you need to fix:
+
+- **A mapping-shaped `image:` block silently deletes every image the packages
+  define.** Anything under `image:` that is not a list — even just a bare
+  `defaults:` key — replaces the package images instead of adding to them
+  (ESPHome merges two lists by concatenating, but a mapping wins outright). You
+  then get a cascade of `Couldn't find ID 'ha_img'` / `'esphome_img'` /
+  `'hue_ring_img'` errors pointing into `pages/loading.yaml` and
+  `ui/popup/popup_system.yaml`, where the IDs are in fact defined correctly.
+- **Don't fall back to the pre-2026.7 form.** List entries without `platform:`
+  mixed with this repo's platform-tagged entries disable ESPHome's automatic
+  migration entirely, giving
+  `'image' requires a 'platform' key but it was not specified`.
+
+---
+
+## Theme
+
+The theme lives in [`common/theme/`](common/theme/README.md) and is a self-contained bundle — one include pulls in colors, fonts, MDI glyph substitutions, and LVGL styles. See the [theme README](common/theme/README.md) for the full color palette, font sizes, and customization reference.
+
+The `common/theme/index.yaml` bundle includes colors, fonts, MDI glyph substitutions, and LVGL styles in one include.
+
+To debug layout, swap to the debug variant which adds red outlines to all widgets:
+
+```yaml
+# theme: !include esphome-modular-lvgl-buttons/common/theme/index.yaml
+  theme: !include esphome-modular-lvgl-buttons/common/theme/index_debug.yaml
+```
+
+Theme appearance is controlled via substitution variables:
+
+| Variable | Default | Description |
+|---|---|---|
+| `button_on_color` | `ep_orange` | Tile background when active/on |
+| `button_off_color` | `very_dark_gray` | Tile background when inactive/off |
+| `icon_on_color` | `yellow` | Icon color when active |
+| `icon_off_color` | `gray` | Icon color when inactive |
+| `label_on_color` | `white` | Label color when active |
+| `label_off_color` | `gray` | Label color when inactive |
+| `icon_font` | `mdi_icons_40` | Font ID used for icons |
+| `text_font` | `nunito_20` | Font ID used for labels |
+
+Available named colors: `ep_orange`, `ep_blue`, `ep_green`, `steel_blue`, `misty_blue`, `very_dark_gray`, `gray800`, `gray900`, and all standard CSS colors.
+
+---
+
+## Desktop development with SDL
+
+Test your UI on macOS or Linux without flashing hardware:
 
 ```bash
-# Ubuntu/Debian
-sudo apt install libsdl2-dev
-
 # macOS
 brew install sdl2
+
+# Ubuntu/Debian
+sudo apt install libsdl2-dev
 ```
 
-2. Use the SDL hardware configuration:
+Use the SDL hardware config instead of a real device:
 
 ```yaml
 packages:
   hardware: !include esphome-modular-lvgl-buttons/hardware/SDL-lvgl.yaml
+  sensors:  !include esphome-modular-lvgl-buttons/common/sensors_base_sdl.yaml
 ```
 
-3. Run the configuration:
+Then `esphome run your-config.yaml` — a window opens simulating the display. See `example_code/SDL-lvgl-display_modular_480px.yaml` for a full working SDL config.
 
-```bash
-esphome run SDL-lvgl-display_modular_480px.yaml
-```
+---
 
-A window will open on your desktop simulating the touchscreen display.
+## Supported hardware
 
-## 📁 Project Structure
+One hardware file per display, in [`hardware/`](hardware/). Include the one matching your
+device (`hardware: !include esphome-modular-lvgl-buttons/hardware/<model>.yaml`). The
+**Driver** column is the ESPHome display platform each file uses.
 
-```
-esphome-modular-lvgl-buttons/
-├── README.md                 # This file
-├── LICENSE                   # MIT License
-├── secrets.yaml              # Template for WiFi/API secrets
-├── assets/                   # Images, icons, and fonts
-│   ├── fonts/                # Custom font files
-│   └── images/               # PNG/SVG images for UI
-├── buttons/                  # Reusable button components
-├── common/                   # Shared configuration (themes, colors, fonts)
-├── custom_components/        # Custom ESPHome components
-│   └── noaa_tides/           # NOAA tide data integration
-├── example_code/             # Basic example configurations
-├── example_code_advanced/    # Advanced examples (weather, tides)
-├── hardware/                 # Hardware-specific configurations
-├── homeassistant_config/     # Home Assistant configuration examples
-├── pages/                    # Full-screen page layouts
-├── sensors/                  # Sensor configurations
-├── solar/                    # Solar monitoring components
-├── tides/                    # NOAA tide display components
-├── weather_homeassistant/    # Weather display components
-└── widgets/                  # Reusable UI widgets (canvas, navigation)
-```
+### Waveshare
 
-## 📝 Device-Specific Notes
+| Model | Size | Resolution | Driver |
+|---|---|---|---|
+| `waveshare-esp32-s3-touch-lcd-2.8c` | 2.8" round | 480×480 | `st7701` |
+| `waveshare-esp32-s3-touch-lcd-3.5` | 3.5" | 320×480 | `mipi_spi` |
+| `waveshare-esp32-s3-touch-lcd-3.5b` | 3.5" | 480×320 | `mipi_spi` |
+| `waveshare-esp32-s3-touch-lcd-4` | 4.0" | 480×480 | `st7701` |
+| `waveshare-esp32-s3-touch-lcd-4-v4` | 4.0" | 480×480 | `mipi_rgb` |
+| `waveshare-esp32-s3-touch-lcd-4.3` | 4.3" | 800×480 | `rpi_dpi_rgb` |
+| `waveshare-esp32-s3-touch-lcd-7` | 7.0" | 800×480 | `mipi_rgb` |
+| `waveshare-esp32-s3-touch-lcd-7B` | 7.0" | 1024×600 | `mipi_rgb` |
+| `waveshare-esp32-p4-86-panel` | 86mm | 720×720 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-touch-lcd-3.4c` | 3.4" | 800×800 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-touch-lcd-4b` | 4.0" | 720×720 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-touch-lcd-7` | 7.0" | 720×1280 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-touch-lcd-7b` | 7.0" | 1024×600 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-touch-lcd-10.1` | 10.1" | 800×1280 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-7-DSI-TOUCH-A` | 7.0" | 720×1280 | `mipi_dsi` |
+| `waveshare-esp32-p4-wifi6-10.1-DSI-TOUCH-A` | 10.1" | 800×1280 | `mipi_dsi` |
+| `waveshare-esp32-p4-module-dev-kit-10.1-DSI-TOUCH-A` | 10.1" | 800×1280 | `mipi_dsi` |
 
-### Guition ESP32-4848S040 (4.0" Square)
+The last three entries are **two-piece** combinations — a Raspberry-Pi-form-factor dev
+board with a separate DSI panel on the MIPI-DSI FPC, not an all-in-one unit:
 
-A great compact screen with built-in 120V/240V relays for direct light control. Includes boot screen, automatic backlight dimming at night, and buttons for controlling local and Home Assistant devices.
+- `waveshare-esp32-p4-wifi6-7-DSI-TOUCH-A` —
+  [ESP32-P4-WIFI6-DEV-KIT](https://www.waveshare.com/wiki/ESP32-P4-WIFI6-DEV-KIT) +
+  [7-DSI-TOUCH-A](https://www.waveshare.com/wiki/7-DSI-TOUCH-A) (ILI9881C, 720×1280, 1Gbps).
+- `waveshare-esp32-p4-wifi6-10.1-DSI-TOUCH-A` — the same WIFI6 DEV-KIT +
+  [10.1-DSI-TOUCH-A](https://www.waveshare.com/wiki/10.1-DSI-TOUCH-A) (JD9365, 800×1280,
+  1.5Gbps).
+- `waveshare-esp32-p4-module-dev-kit-10.1-DSI-TOUCH-A` — that same 10.1 panel on the
+  [ESP32-P4-Module-DEV-KIT](https://www.waveshare.com/wiki/ESP32-P4-Module-DEV-KIT)
+  carrier, which is wired the same way but ships 16MB flash instead of 32MB.
 
-**Best for:** Wall-mounted light switches, room controllers
+Pass `rotation: "270"` for the landscape mounting on either 10.1 profile. None of these
+boards route an LCD reset or backlight PWM GPIO: panel brightness is written over I2C
+(device `0x45`, register `0x96`) and the GT9271 touch controller is polled, because the
+DSI FPC carries no INT/RST lines.
 
-### Guition ESP32-JC8048W550 (5.0")
+### Guition
 
-One of the best screens available - bright IPS display, 16MB flash, Qwiic (I2C) port, speaker port, and excellent value.
+| Model | Size | Resolution | Driver |
+|---|---|---|---|
+| `guition-esp32-s3-4848s040` | 4.0" | 480×480 | `mipi_rgb` |
+| `guition-esp32-jc4827w543` | 4.3" | 480×272 | `qspi_dbi` |
+| `guition-esp32-jc8048w535` | 3.5" | 480×320 | `axs15231` |
+| `guition-esp32-jc8048w550` | 5.0" | 800×480 | `mipi_rgb` |
+| `guition-esp32-p4-jc1060p470` | 7.0" | 1024×600 | `mipi_dsi` |
+| `guition-esp32-p4-jc1060p470c` | 7.0" | 1024×600 | `mipi_dsi` |
+| `guition-esp32-p4-jc1060p470-v2` | 7.0" | 1024×600 | `mipi_dsi` |
+| `guition-esp32-p4-jc1060p470c-v2` | 7.0" | 1024×600 | `mipi_dsi` |
+| `guition-esp32-p4-jc4880p443` | 4.3" | 480×800 | `mipi_dsi` |
+| `guition-esp32-p4-jc8012p4a1` | 10.1" | 800×1280 | `mipi_dsi` |
+| `guition-esp32-p4-jc8012p4a1-v2` | 10.1" | 800×1280 | `mipi_dsi` |
+| `guition-esp32-p4-jc8012p4a1-v3` | 10.1" | 800×1280 | `mipi_dsi` |
 
-**Best for:** General-purpose dashboards, room displays
+The three `jc8012p4a1` entries are the same 10.1" board at different revisions, and
+picking the wrong one leaves the screen blank or garbled:
 
-### Guition ESP32-jc4827w543C (4.3")
+- `guition-esp32-p4-jc8012p4a1` — original panel (`JC8012P4A1` init sequence).
+- `guition-esp32-p4-jc8012p4a1-v2` — later units with a different LCD behind the same
+  JD9365 driver, on pre-rev3 ESP32-P4 engineering-sample silicon.
+- `guition-esp32-p4-jc8012p4a1-v3` — same later LCD, on production (rev3) ESP32-P4.
 
-Excellent screen with very bright IPS display at ~$20 USD. Note: Only 4MB flash (2MB usable in ESPHome), so code size is limited. Has DAC + AMP for audio.
+If the display works but the board reboots at boot, or ESPHome rejects
+`engineering_sample`, you are on the wrong one of `-v2` / `-v3` — check the boot log
+for `chip revision: vX.Y`. Both need ESPHome 2026.8.0 or newer.
 
-**Best for:** Simple dashboards, budget-friendly projects
+`guition-esp32-p4-jc1060p470-v2` is the 2026 "New Panel" revision of the 7" board.
+Guition prints "V2" in the SKU or material number on the label on the back of the
+case; boards without that marking use `guition-esp32-p4-jc1060p470`. The wrong
+profile gives a white screen with a vertical noise band. The V2 panel keeps the same
+JD9165 driver but needs its own init sequence and timings, reset on GPIO0 rather than
+GPIO27, and the ESP32-C6 SDIO clock dropped to 10MHz to stop it interfering with the
+MIPI-DSI stream. `guition-esp32-p4-jc1060p470c-v2` is the same panel revision on the
+`-c` board variant, which keeps its own LDO channel, audio pin map and lack of a
+status LED.
 
-### Sunton ESP32-8048S070 (7.0")
+### Sunton
 
-The largest and highest resolution affordable screen. Excellent touch screen and good dimming ability.
+| Model | Size | Resolution | Driver |
+|---|---|---|---|
+| `sunton-esp32-2432s028` | 2.8" | 240×320 | `mipi_spi` |
+| `sunton-esp32-2432s028R` | 2.8" | 320×240 | `ili9xxx` |
+| `sunton-esp32-4827s032R` | 3.2" | 480×320 | `rpi_dpi_rgb` |
+| `sunton-esp32-8048s050` | 5.0" | 800×480 | `rpi_dpi_rgb` |
+| `sunton-esp32-8048s070` | 7.0" | 800×480 | `mipi_rgb` |
 
-**Best for:** Information displays, weather stations, whole-home dashboards
+### Other
 
-### Waveshare ESP32-S3-Touch-LCD-7 (7.0")
+| Model | Size | Resolution | Driver |
+|---|---|---|---|
+| `esp32-s3-box-3` | 2.4" | 320×240 | `ili9xxx` |
+| `lilygo-tdisplays3` | 1.9" | 170×320 | `ili9xxx` |
+| `elecrow-esp32-7inch` | 7.0" | 800×480 | `rpi_dpi_rgb` |
+| `SDL-lvgl` | desktop | variable | `host` (SDL) |
 
-High-quality 7" display from Waveshare with excellent documentation and support.
+`hardware/generic.yaml` is a starting template for boards not listed above.
+Audio/voice add-ons (include *alongside* a screen, not standalone):
+`hardware/media_player-voice_assistant.yaml` and `hardware/guition-esp32-jc4827w543-audio.yaml`.
 
-**Best for:** Professional installations, commercial projects
+---
 
-## 🔧 Troubleshooting
+## Feature modules
 
-### Common Issues
+Additional UI modules under `ui/` for specific integrations:
 
-**Display shows nothing after boot:**
-- Check your hardware configuration matches your exact display model
-- Verify power supply provides adequate current (most displays need 500mA+)
+| Module | Description |
+|---|---|
+| `ui/clock/flip_clock.yaml` | Gluqlo-style flip clock widget |
+| `ui/weather/today.yaml` | Current weather tile from HA weather entity |
+| `ui/weather/forecast.yaml` | 4-day forecast widget via `weather.get_forecasts` |
+| `ui/solar/` | Enphase / solar production and consumption monitoring |
+| `ui/tides/tide_update.yaml` | NOAA tide clock with gauge display |
+| `ui/tides/NOAA_tide_update.yaml` | NOAA CO-OPS API tide data with HA sensors (level, percentage, high/low times). Vars: `noaa_station_id`, `noaa_unit_system` (`english`/`metric`), `noaa_unit_of_measurement` (`ft`/`m`). |
 
-**Touch not working:**
-- Some displays have different touch controller variants (e.g., 7B vs 7)
-- Check the hardware YAML for correct I2C address and touch driver
+See `example_code/advanced/` for full working configs using these modules.
 
-**WiFi connection issues:**
-- Ensure `secrets.yaml` has correct credentials
-- Check WiFi signal strength at display location
+---
 
-**Compilation errors about missing files:**
-- Ensure you cloned the repository into the correct directory
-- Check file paths in your configuration
+## License
 
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-### How to Contribute
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [ESPHome](https://esphome.io/) - The amazing platform that makes this possible
-- [LVGL](https://lvgl.io/) - Light and Versatile Graphics Library
-- [Home Assistant](https://www.home-assistant.io/) - The heart of the smart home
-- [Material Design Icons](https://materialdesignicons.com/) - Beautiful icon set
+MIT — see [LICENSE](LICENSE).

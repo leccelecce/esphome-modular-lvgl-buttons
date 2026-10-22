@@ -1,6 +1,6 @@
 # LVGL Reference for ESPHome — Quick Guide for AI Assistants
 
-ESPHome uses **LVGL v8** (not v9). Documentation: https://esphome.io/components/lvgl/
+ESPHome uses **LVGL v9.5** (not v8). Documentation: https://esphome.io/components/lvgl/
 
 ## Grid Layout
 

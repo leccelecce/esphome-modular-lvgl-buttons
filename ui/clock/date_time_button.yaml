@@ -1,0 +1,79 @@
+---
+# Date and Time display button: weekday, date and 24h time stacked vertically.
+# Labels are refreshed via !extend time_update (fires once per minute).
+# vars:
+#    uid:
+#    page_id:
+#    row:
+#    column:
+#    row_span:     (default: 1)
+#    column_span:  (default: 1)
+#    click_page:
+
+# This section add a button to LVGL page main_page
+lvgl:
+  style_definitions:
+    - id: date_style
+      scrollbar_mode: "OFF"
+      text_font: nunito_24
+      text_color: $label_on_color
+      text_align: CENTER
+      align: center
+
+    - id: date_time_style
+      scrollbar_mode: "OFF"
+      text_font: nunito_36
+      text_color: $label_on_color
+      text_align: CENTER
+      align: center
+
+  pages:
+    - id: !extend ${page_id | default("main_page")}
+      widgets:
+        - container:
+            id: ${uid}
+            grid_cell_row_pos: ${row}
+            grid_cell_column_pos: ${column}
+            grid_cell_row_span: ${row_span | default(1)}
+            grid_cell_column_span: ${column_span | default(1)}
+            grid_cell_x_align: stretch
+            grid_cell_y_align: stretch
+            # outline_width: 1
+            # outline_color: red
+            widgets:
+              - button:
+                  id: button_${uid}
+                  bg_opa: TRANSP
+                  # 👇 stack children vertically
+                  layout: vertical
+                  align: center # center children vertically
+
+                  widgets:
+                    - label:
+                        id: time_label1
+                        styles: date_style
+                        text: 'Monday'
+                    - label:
+                        id: time_label2
+                        styles: date_style
+                        text: '01 Jan'
+                    - label:
+                        id: time_label3
+                        styles: date_time_style
+                        text: '12:34'
+                  on_short_click:
+                    then:
+                      lvgl.page.show: ${click_page | default(main_page)}
+
+script:
+  - id: !extend time_update
+    then:
+      - lvgl.label.update:
+          id: time_label1
+          text: !lambda 'return id(system_time).now().strftime("%A");'
+      - lvgl.label.update:
+          id: time_label2
+          text: !lambda 'return id(system_time).now().strftime("%d %b");'
+      - lvgl.label.update:
+          id: time_label3
+          text: !lambda 'return id(system_time).now().strftime("%H:%M");'

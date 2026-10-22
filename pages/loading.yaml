@@ -6,13 +6,13 @@ globals:
 
 image:
   - platform: file
-    type: rgb565
+    type: RGB565
     transparency: alpha_channel
     file: 'esphome-modular-lvgl-buttons/assets/images/loading/homeassistant.png'
     id: ha_img
     resize: 400x82
   - platform: file
-    type: rgb565
+    type: RGB565
     transparency: alpha_channel
     file: 'esphome-modular-lvgl-buttons/assets/images/loading/esphome.png'
     id: esphome_img
@@ -21,27 +21,32 @@ image:
 lvgl:
   top_layer:
     widgets:
+      # Full-screen button = capture-all touch target + background.
+      # All children use align: *_mid so they stay horizontally
+      # centered on any screen width. Vertical positions are pixel
+      # offsets from the top/bottom edges.
       - button:
           id: loading_page
           bg_color: slate_blue_gray
           shadow_opa: transp
-          width: ${screen_width}
-          height: ${screen_height}
+          width: 100%
+          height: 100%
           radius: 0
+          pad_all: 0
           on_press:
             - lvgl.widget.hide: loading_page
           widgets:
             - image:
-                y: 30
                 align: top_mid
+                y: 30
                 src: ha_img
+
             - obj:
                 id: boot_homeassistant
-                y: 180
+                align: center
                 width: 350
-                height: 100
+                height: 60
                 pad_all: 0
-                align: top_mid
                 bg_opa: transp
                 shadow_opa: transp
                 border_opa: transp
@@ -66,13 +71,13 @@ lvgl:
                       indicator:
                         arc_color: misty_blue
                         arc_width: 5
+
             - obj:
                 id: boot_synchronization
-                y: 180
-                width: 300
+                align: center
+                width: 350
                 height: 60
                 pad_all: 0
-                align: top_mid
                 bg_opa: transp
                 shadow_opa: transp
                 border_opa: transp
@@ -89,20 +94,28 @@ lvgl:
                       text: "Sync with HA..."
                   - bar:
                       id: boot_synchronization_bar
-                      y: 0
-                      width: 300
-                      value: 0
                       align: bottom_mid
+                      y: 0
+                      width: 100%
+                      height: 20
+                      value: 0
                       min_value: 0
                       max_value: 100
                       animated: true
                       bg_color: steel_blue
                       indicator:
                         bg_color: misty_blue
+
             - image:
-                y: -30
                 align: bottom_mid
+                y: -30
                 src: esphome_img
+esphome:
+  on_boot:
+  - priority: 400
+    then:
+    - script.execute: update_loading_page
+
 script:
   - id: update_loading_page
     then:
@@ -147,6 +160,8 @@ script:
           }
 
 api:
+  # encryption:
+    # key: !secret api_encryption_key
   on_client_connected:
     - if:
         condition:

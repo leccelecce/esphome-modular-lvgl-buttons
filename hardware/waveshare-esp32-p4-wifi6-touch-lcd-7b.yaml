@@ -5,12 +5,13 @@
 # Schematic: https://files.waveshare.com/wiki/ESP32-P4-WIFI6-Touch-LCD-7B/ESP32-P4-WIFI6-Touch-LCD-7B.pdf
 
 substitutions:
-  # Screen Size
-  screen_height: 600
-  screen_width: 1024
+  # Screen Size (landscape orientation - 7B display)
+  # Swapped automatically for 90/270 rotation
+  screen_height: ${600 if rotation | default("180") not in ["90", "270"] else 1024}
+  screen_width: ${1024 if rotation | default("180") not in ["90", "270"] else 600}
 
 esphome:
-  min_version: 2026.3.0
+  min_version: 2026.7.0
   project:
     name: "Waveshare.ESP32-P4-WIFI6-Touch-LCD-7B"
     version: "1.0"
@@ -36,13 +37,13 @@ preferences:
 esp_ldo:
   - voltage: 2.5V
     channel: 3
-    
-http_request:  # Needed by esp32_hosted-update and any JSON stuff    
+
+http_request:  # Needed by esp32_hosted-update and any JSON stuff
 
 # -------------------------------------------
 # Network hardware
 # -------------------------------------------
-    
+
 esp32_hosted:
   variant: ESP32C6
   reset_pin: GPIO54
@@ -53,7 +54,7 @@ esp32_hosted:
   d2_pin: GPIO16
   d3_pin: GPIO17
   active_high: true
-  
+
 # Firmware update for esp32_hosted ESP32-C6
 update:
   - platform: esp32_hosted
@@ -61,7 +62,7 @@ update:
     icon: mdi:chip
     type: http
     source: https://esphome.github.io/esp-hosted-firmware/manifest/esp32c6.json
-    update_interval: 6h    
+    update_interval: 6h
 
 # -------------------------------------------
 # Touchscreen gt911 i2c
@@ -81,19 +82,8 @@ touchscreen:
     update_interval: 50ms
     transform:
       swap_xy: false
-      mirror_x: false
-      mirror_y: false
-      # on_touch:
-      #   - logger.log:
-      #   format: Touch at (%d, %d)
-      #   args: [touch.x, touch.y]
-      #   - lambda: |-
-      #       ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
-      #       touch.x,
-      #       touch.y,
-      #       touch.x_raw,
-      #       touch.y_raw
-      #       );
+      mirror_x: true
+      mirror_y: true
 
 # -------------------------------------------
 # Backlight
@@ -123,7 +113,6 @@ display:
     model: WAVESHARE-ESP32-P4-WIFI6-TOUCH-LCD-7B
     reset_pin:
       number: 33
-    rotation: 180
     update_interval: never
     auto_clear_enabled: false
     dimensions:
@@ -132,7 +121,7 @@ display:
 
 # Special LVGL settings required for this display
 lvgl:
-  byte_order: little_endian
+  rotation: ${rotation | default("180")}
 
 # -------------------------------------------
 # Audio devices

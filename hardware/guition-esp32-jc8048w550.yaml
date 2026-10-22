@@ -2,14 +2,13 @@
 #
 # Hardware configuration file
 ---
-
 substitutions:
   # Screen Size
   screen_height: 480
   screen_width: 800
 
 esphome:
-  min_version: 2026.3.0
+  min_version: 2026.7.0
   project:
     name: "Guition.ESP32-jc8048w550"
     version: "1.0"
@@ -79,12 +78,13 @@ touchscreen:
 # Display
 # -------------------------------------------
 display:
-  - platform: rpi_dpi_rgb
+  - platform: mipi_rgb
     id: main_display
+    model: RPI
     color_order: RGB
     invert_colors: true
     update_interval: never
-    auto_clear_enabled: false  # takes 2.8 seconds to clear the display
+    auto_clear_enabled: false
     dimensions:
       width: 800
       height: 480
@@ -93,23 +93,18 @@ display:
     vsync_pin: GPIO41
     pclk_pin: GPIO42
     pclk_frequency: 16MHz
+    pclk_inverted: true
+    hsync_pulse_width: 4
+    hsync_back_porch: 8
+    hsync_front_porch: 8
+    vsync_pulse_width: 4
+    vsync_back_porch: 8
+    vsync_front_porch: 8
     data_pins:
-      red:
-        - 45
-        - 48
-        - 47
-        - 21
-        - 14
-      green:
-        - 5
-        - 6
-        - 7
-        - 15
-        - 16
-        - 4
-      blue:
-        - 8
-        - 3
-        - 46
-        - 9
-        - 1
+      red:   [45, 48, 47, 21, 14]
+      green: [5, 6, 7, 15, 16, 4]
+      blue:  [8, 3, 46, 9, 1]
+
+# Special LVGL settings required for this display
+lvgl:
+  rotation: ${rotation | default("0")}

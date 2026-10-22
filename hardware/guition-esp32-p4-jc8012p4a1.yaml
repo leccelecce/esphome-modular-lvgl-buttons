@@ -5,19 +5,14 @@
 # http://pan.jczn1688.com/directlink/1/HMI%20display/JC8012P4A1C_I_W_Y.zip
 #
 
-external_components:
-  - source: github://willumpie82/esphome@dev
-    components: [mipi_dsi]
-  - source: github://kvj/esphome@jd9365_gsl3680
-    components: [gsl3680]
-
 substitutions:
-  # Screen Size
-  screen_height: 1280
-  screen_width: 800
+  # Screen Size (portrait orientation - 10.1" display)
+  # Swapped automatically for 90/270 rotation
+  screen_height: ${1280 if rotation | default("180") not in ["90", "270"] else 800}
+  screen_width: ${800 if rotation | default("180") not in ["90", "270"] else 1280}
 
 esphome:
-  min_version: 2026.3.0
+  min_version: 2026.7.0
   project:
     name: "Guition.ESP32-P4-JC8012P4A1"
     version: "1.0"
@@ -42,8 +37,8 @@ psram:
 
 preferences:
   flash_write_interval: 5min
-  
-http_request:  # Needed by esp32_hosted-update and any JSON stuff  
+
+http_request:  # Needed by esp32_hosted-update and any JSON stuff
 
 # -------------------------------------------
 # Network hardware
@@ -58,7 +53,7 @@ esp32_hosted:
   d2_pin: GPIO16
   d3_pin: GPIO17
   active_high: true
-  
+
 # Firmware update for esp32_hosted ESP32-C6
 update:
   - platform: esp32_hosted
@@ -111,14 +106,11 @@ i2c_device:
 # Touchscreen
 # -------------------------------------------
 touchscreen:
-  - platform: gsl3680
+  - platform: gsl3670
     id: my_touchscreen
-    reset_pin: GPIO22
-    interrupt_pin: GPIO21
-    transform:
-      swap_xy: false
-      mirror_x: false
-      mirror_y: true
+    model: GUITION-JC8012P4A1
+    # model provides reset_pin (GPIO22), interrupt_pin (GPIO21),
+    # firmware, and calibrated transform/bounds — no overrides needed.
 
 # -------------------------------------------
 # Display
@@ -129,7 +121,6 @@ display:
     id: my_display
     update_interval: never
     reset_pin: GPIO27
-    rotation: 180
     auto_clear_enabled: false
     color_order: RGB
     dimensions:
@@ -138,7 +129,7 @@ display:
 
 # Special LVGL settings required for this display
 lvgl:
-  byte_order: little_endian
+  rotation: ${rotation | default("180")}
   buffer_size: 100%
 
 # -------------------------------------------

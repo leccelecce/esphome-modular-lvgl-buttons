@@ -5,7 +5,7 @@ wifi:
   fast_connect: true
   min_auth_mode: WPA2
 #  ap:
-#    password: "password"
+#    password: !secret ap_password
 
 #captive_portal:
 

@@ -1,0 +1,494 @@
+# Waveshare ESP32-P4-Module-DEV-KIT carrier board + Waveshare 10.1-DSI-TOUCH-A panel.
+#
+# This is the *two-piece* combination: the Raspberry-Pi-form-factor
+# ESP32-P4-Module-DEV-KIT (ESP32-P4-Module SoM — ESP32-P4NRW32 + ESP32-C6 +
+# 16MB flash) with a 10.1inch 800x1280 IPS DSI panel plugged into the MIPI-DSI
+# FPC (J3). It is NOT the all-in-one ESP32-P4-WIFI6-Touch-LCD-10.1 — see
+# hardware/waveshare-esp32-p4-wifi6-touch-lcd-10.1.yaml for that one.
+#
+# The DEV-KIT carrier wiring is the same as the ESP32-P4-WIFI6-DEV-KIT (same
+# vendor BSP, esp32_p4_platform): I2C on 7/8, ES8311 on 13/12/11/10/9, PA on
+# GPIO53, C6 over SDIO slot 1, IP101GRI Ethernet PHY. The only board difference
+# is flash: the Module ships 16MB (some batches 32MB) where the WIFI6 DEV-KIT
+# is 32MB.
+#
+# Board-level notes (all panels on this board):
+#   - No LCD reset GPIO      (BSP_LCD_RST      = GPIO_NUM_NC) — panel self-resets
+#     NOTE: because there is no reset pin, ESPHome's mipi_dsi issues a DCS software
+#     reset and then sends the init sequence with no settling time. The JD9365 needs
+#     120ms after reset, so the sequence is ignored, the DSI command FIFO never
+#     drains, and the boot dies in the task watchdog — blank screen + safe mode.
+#     Intermittent, since it is a race. Fix: patches/esphome-2026.9.1-mipi-dsi-swreset-120ms.patch
+#   - No backlight PWM GPIO  (BSP_LCD_BACKLIGHT = GPIO_NUM_NC) — brightness is written
+#     over I2C to the panel's backlight controller: device 0x45, register 0x96, 0x00-0xFF
+#   - No touch INT / RST GPIO (both GPIO_NUM_NC) — GT9271 is polled on the shared I2C bus
+#   - No ES7210 mic ADC — the DEV-KIT uses the ES8311's analog mic input only
+#   - GPIO45 drives the onboard power/activity LED (active LOW). Left unclaimed here.
+#   - Reserved, do not reuse: GPIO7/8 (I2C0), GPIO9-13 + 53 (audio),
+#     GPIO39-44 (TF card), GPIO29-35 + 50-52 (Ethernet RMII), GPIO0-3 (boot straps)
+#
+# Board wiki:  https://www.waveshare.com/wiki/ESP32-P4-Module-DEV-KIT
+# Panel wiki:  https://www.waveshare.com/wiki/10.1-DSI-TOUCH-A
+# Vendor BSP:  https://github.com/waveshareteam/Waveshare-ESP32-components
+#              bsp/esp32_p4_platform/esp32_p4_platform.c  (bsp_display_brightness_set)
+---
+
+substitutions:
+  # Screen Size (native portrait 800x1280)
+  # Swapped automatically for 90/270 rotation
+  screen_height: ${1280 if rotation | default("0") not in ["90", "270"] else 800}
+  screen_width: ${800 if rotation | default("0") not in ["90", "270"] else 1280}
+
+esphome:
+  min_version: 2026.7.0
+  project:
+    name: "Waveshare.ESP32-P4-Module-DEV-KIT-10-1-DSI-TOUCH-A"
+    version: "1.0"
+
+esp32:
+  # Engineering-sample profile, which boots on both ES and production (rev3)
+  # silicon. If your boot log says `chip revision: v3.x` you can switch to
+  # `board: esp32-p4_r3-evboard` and raise cpu_frequency to 400MHz — but a
+  # rev3-only image will NOT boot on an engineering sample, so this stays the
+  # conservative default.
+  board: esp32-p4-evboard
+  variant: esp32p4
+  # ESP32-P4NRW32 on the ESP32-P4-Module: 16MB NOR flash + 32MB in-package PSRAM.
+  # Some batches ship a 32MB-flash module — bump this if you have one.
+  flash_size: 16MB
+  cpu_frequency: 360MHz
+  # The 10.1 panel's JD9365 init sequence is long and runs at 1.5Gbps. The
+  # default 5s task watchdog kills display setup mid-init, so give it room.
+  watchdog_timeout: 30s
+  framework:
+    type: esp-idf
+    advanced:
+      execute_from_psram: true
+      enable_idf_experimental_features: true
+
+psram:
+  mode: hex
+  speed: 200MHz
+
+preferences:
+  flash_write_interval: 5min
+
+# Powers the MIPI DSI PHY — the panel stays dark without this.
+esp_ldo:
+  - voltage: 2.5V
+    channel: 3
+
+http_request:  # Needed by esp32_hosted-update and any JSON stuff
+
+# -------------------------------------------
+# Network hardware
+# -------------------------------------------
+# The ESP32-P4 has no radio of its own; the ESP32-C6 on the module provides
+# Wi-Fi 6 over SDIO. If the C6 never comes up on your unit, try active_high: false.
+esp32_hosted:
+  variant: ESP32C6
+  reset_pin: GPIO54
+  cmd_pin: GPIO19
+  clk_pin: GPIO18
+  d0_pin: GPIO14
+  d1_pin: GPIO15
+  d2_pin: GPIO16
+  d3_pin: GPIO17
+  active_high: true
+
+# The board also has a 100M IP101GRI Ethernet PHY (RMII) on RJ45, with a PoE
+# header. Not enabled here because common/wifi.yaml is the usual transport.
+# Pins if you want it:
+#   type: IP101, mdc_pin: GPIO31, mdio_pin: GPIO52, power_pin: GPIO51,
+#   clk: {pin: GPIO50, mode: CLK_EXT_IN}
+
+# Firmware update for esp32_hosted ESP32-C6
+update:
+  - platform: esp32_hosted
+    name: ESP-Hosted Firmware
+    icon: mdi:chip
+    type: http
+    source: https://esphome.github.io/esp-hosted-firmware/manifest/esp32c6.json
+    update_interval: 6h
+
+# -------------------------------------------
+# Shared I2C bus
+# -------------------------------------------
+# One bus serves everything: ES8311 codec (0x18), the panel's GT9271 touch
+# controller (0x5D), the panel's backlight controller (0x45), plus whatever is
+# wired to the I2C header (J10) / 40-pin header. Onboard parts top out at 400kHz.
+i2c:
+  - id: bus_a
+    sda: GPIO07
+    scl: GPIO08
+    frequency: 400kHz
+    scan: true
+
+# -------------------------------------------
+# Touchscreen GT9271 (GT911-compatible) over I2C
+# -------------------------------------------
+# No interrupt or reset pin is routed on the DSI FPC, so the driver polls.
+# If the boot scan reports 0x14 instead of 0x5D, add `address: 0x14` here.
+touchscreen:
+  - platform: gt911
+    id: my_touchscreen
+    i2c_id: bus_a
+    display: main_display
+    update_interval: 50ms
+    transform:
+      swap_xy: false
+      mirror_x: false
+      mirror_y: false
+    # on_touch:
+    #   - lambda: |-
+    #       ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%d",
+    #                touch.x, touch.y, touch.x_raw, touch.y_raw);
+
+# -------------------------------------------
+# Backlight (I2C, not PWM)
+# -------------------------------------------
+# The 10.1-DSI-TOUCH-A carries its own backlight controller. Brightness is a
+# single byte written to register 0x96 of I2C device 0x45 — same as the vendor
+# BSP's bsp_display_brightness_set(). (The panel wiki quotes register 0x86; the
+# BSP uses 0x96, which is what is confirmed working on this panel.) A template
+# output lets the normal monochromatic light (and common/backlight_time.yaml)
+# drive it unchanged.
+output:
+  - platform: template
+    id: gpio_backlight_pwm
+    type: float
+    zero_means_zero: true
+    write_action:
+      - lambda: |-
+          uint8_t level = (uint8_t) lroundf(state * 255.0f);
+          uint8_t data[2] = {0x96, level};
+          id(bus_a).write(0x45, data, sizeof(data));
+
+light:
+  - platform: monochromatic
+    output: gpio_backlight_pwm
+    name: Display Backlight
+    icon: mdi:lightbulb-on
+    id: display_backlight
+    restore_mode: ALWAYS_ON
+    default_transition_length: 250ms
+
+# -------------------------------------------
+# Display — MIPI DSI, 2 lanes @ 1.5Gbps, JD9365
+# -------------------------------------------
+display:
+  # NOTE: model is CUSTOM, not WAVESHARE-10.1-DSI-TOUCH-A, purely so the init
+  # sequence can start with a 120ms delay. This board routes no LCD reset pin, so
+  # ESPHome's mipi_dsi issues a DCS software reset and then sends the panel init
+  # sequence with no settling time; the JD9365 ignores commands for 120ms after
+  # reset, the DSI command FIFO never drains, and the boot dies in the task
+  # watchdog (blank screen + safe mode). A YAML `init_sequence:` on a named model
+  # is APPENDED after the model's own, which is far too late to help -- hence
+  # CUSTOM, where init_sequence IS the whole sequence and the delay lands first.
+  # The vendor driver does the same thing (panel_jd9365_reset waits 120ms).
+  #
+  # Options below reproduce the named model exactly; all other settings inherit
+  # identical schema defaults. SLPOUT/DISPON/PIXFMT/MADCTL are still appended
+  # automatically by ESPHome, as with any model.
+  #
+  # TRADE-OFF: this pins a copy of the init sequence here, so it will not pick up
+  # upstream changes to the WAVESHARE-10.1-DSI-TOUCH-A model. Prefer reverting to
+  # `model: WAVESHARE-10.1-DSI-TOUCH-A` once ESPHome waits 120ms after reset
+  # itself -- see patches/esphome-2026.9.1-mipi-dsi-swreset-120ms.patch.
+  - platform: mipi_dsi
+    id: main_display
+    model: CUSTOM
+    update_interval: never
+    auto_clear_enabled: false
+    dimensions:
+      width: 800
+      height: 1280
+    color_order: RGB
+    pclk_frequency: 80MHz
+    lane_bit_rate: 1.5Gbps
+    hsync_pulse_width: 20
+    hsync_back_porch: 20
+    hsync_front_porch: 40
+    vsync_pulse_width: 4
+    vsync_back_porch: 10   # vendor JD9365_800_1280_PANEL_60HZ (ESPHome model says 12)
+    vsync_front_porch: 30
+    init_sequence:
+      # ---- THE FIX: settle 120ms after the DCS software reset ----
+      - delay 120ms
+      # ---- JD9365 init, generated verbatim from ESPHome's model ----
+      - [0xE0, 0x00]
+      - [0xE1, 0x93]
+      - [0xE2, 0x65]
+      - [0xE3, 0xF8]
+      - [0x80, 0x01]
+      - [0xE0, 0x01]
+      - [0x00, 0x00]
+      - [0x01, 0x38]
+      - [0x03, 0x10]
+      - [0x04, 0x38]
+      - [0x0C, 0x74]
+      - [0x17, 0x00]
+      - [0x18, 0xAF]
+      - [0x19, 0x00]
+      - [0x1A, 0x00]
+      - [0x1B, 0xAF]
+      - [0x1C, 0x00]
+      - [0x35, 0x26]
+      - [0x37, 0x09]
+      - [0x38, 0x04]
+      - [0x39, 0x00]
+      - [0x3C, 0x78]
+      - [0x3D, 0xFF]
+      - [0x3E, 0xFF]
+      - [0x3F, 0x7F]
+      - [0x40, 0x06]
+      - [0x41, 0xA0]
+      - [0x42, 0x81]
+      - [0x43, 0x1E]
+      - [0x44, 0x0D]
+      - [0x45, 0x28]
+      - [0x55, 0x02]
+      - [0x57, 0x69]
+      - [0x59, 0x0A]
+      - [0x5A, 0x2A]
+      - [0x5B, 0x17]
+      - [0x5D, 0x7F]
+      - [0x5E, 0x6A]
+      - [0x5F, 0x5B]
+      - [0x60, 0x4F]
+      - [0x61, 0x4A]
+      - [0x62, 0x3D]
+      - [0x63, 0x41]
+      - [0x64, 0x2A]
+      - [0x65, 0x44]
+      - [0x66, 0x43]
+      - [0x67, 0x44]
+      - [0x68, 0x62]
+      - [0x69, 0x52]
+      - [0x6A, 0x59]
+      - [0x6B, 0x4C]
+      - [0x6C, 0x48]
+      - [0x6D, 0x3A]
+      - [0x6E, 0x26]
+      - [0x6F, 0x00]
+      - [0x70, 0x7F]
+      - [0x71, 0x6A]
+      - [0x72, 0x5B]
+      - [0x73, 0x4F]
+      - [0x74, 0x4A]
+      - [0x75, 0x3D]
+      - [0x76, 0x41]
+      - [0x77, 0x2A]
+      - [0x78, 0x44]
+      - [0x79, 0x43]
+      - [0x7A, 0x44]
+      - [0x7B, 0x62]
+      - [0x7C, 0x52]
+      - [0x7D, 0x59]
+      - [0x7E, 0x4C]
+      - [0x7F, 0x48]
+      - [0x80, 0x3A]
+      - [0x81, 0x26]
+      - [0x82, 0x00]
+      - [0xE0, 0x02]
+      - [0x00, 0x42]
+      - [0x01, 0x42]
+      - [0x02, 0x40]
+      - [0x03, 0x40]
+      - [0x04, 0x5E]
+      - [0x05, 0x5E]
+      - [0x06, 0x5F]
+      - [0x07, 0x5F]
+      - [0x08, 0x5F]
+      - [0x09, 0x57]
+      - [0x0A, 0x57]
+      - [0x0B, 0x77]
+      - [0x0C, 0x77]
+      - [0x0D, 0x47]
+      - [0x0E, 0x47]
+      - [0x0F, 0x45]
+      - [0x10, 0x45]
+      - [0x11, 0x4B]
+      - [0x12, 0x4B]
+      - [0x13, 0x49]
+      - [0x14, 0x49]
+      - [0x15, 0x5F]
+      - [0x16, 0x41]
+      - [0x17, 0x41]
+      - [0x18, 0x40]
+      - [0x19, 0x40]
+      - [0x1A, 0x5E]
+      - [0x1B, 0x5E]
+      - [0x1C, 0x5F]
+      - [0x1D, 0x5F]
+      - [0x1E, 0x5F]
+      - [0x1F, 0x57]
+      - [0x20, 0x57]
+      - [0x21, 0x77]
+      - [0x22, 0x77]
+      - [0x23, 0x46]
+      - [0x24, 0x46]
+      - [0x25, 0x44]
+      - [0x26, 0x44]
+      - [0x27, 0x4A]
+      - [0x28, 0x4A]
+      - [0x29, 0x48]
+      - [0x2A, 0x48]
+      - [0x2B, 0x5F]
+      - [0x2C, 0x01]
+      - [0x2D, 0x01]
+      - [0x2E, 0x00]
+      - [0x2F, 0x00]
+      - [0x30, 0x1F]
+      - [0x31, 0x1F]
+      - [0x32, 0x1E]
+      - [0x33, 0x1E]
+      - [0x34, 0x1F]
+      - [0x35, 0x17]
+      - [0x36, 0x17]
+      - [0x37, 0x37]
+      - [0x38, 0x37]
+      - [0x39, 0x08]
+      - [0x3A, 0x08]
+      - [0x3B, 0x0A]
+      - [0x3C, 0x0A]
+      - [0x3D, 0x04]
+      - [0x3E, 0x04]
+      - [0x3F, 0x06]
+      - [0x40, 0x06]
+      - [0x41, 0x1F]
+      - [0x42, 0x02]
+      - [0x43, 0x02]
+      - [0x44, 0x00]
+      - [0x45, 0x00]
+      - [0x46, 0x1F]
+      - [0x47, 0x1F]
+      - [0x48, 0x1E]
+      - [0x49, 0x1E]
+      - [0x4A, 0x1F]
+      - [0x4B, 0x17]
+      - [0x4C, 0x17]
+      - [0x4D, 0x37]
+      - [0x4E, 0x37]
+      - [0x4F, 0x09]
+      - [0x50, 0x09]
+      - [0x51, 0x0B]
+      - [0x52, 0x0B]
+      - [0x53, 0x05]
+      - [0x54, 0x05]
+      - [0x55, 0x07]
+      - [0x56, 0x07]
+      - [0x57, 0x1F]
+      - [0x58, 0x40]
+      - [0x5B, 0x30]
+      - [0x5C, 0x00]
+      - [0x5D, 0x34]
+      - [0x5E, 0x05]
+      - [0x5F, 0x02]
+      - [0x63, 0x00]
+      - [0x64, 0x6A]
+      - [0x67, 0x73]
+      - [0x68, 0x07]
+      - [0x69, 0x08]
+      - [0x6A, 0x6A]
+      - [0x6B, 0x08]
+      - [0x6C, 0x00]
+      - [0x6D, 0x00]
+      - [0x6E, 0x00]
+      - [0x6F, 0x88]
+      - [0x75, 0xFF]
+      - [0x77, 0xDD]
+      - [0x78, 0x2C]
+      - [0x79, 0x15]
+      - [0x7A, 0x17]
+      - [0x7D, 0x14]
+      - [0x7E, 0x82]
+      - [0xE0, 0x04]
+      - [0x00, 0x0E]
+      - [0x02, 0xB3]
+      - [0x09, 0x61]
+      - [0x0E, 0x48]
+      - [0x37, 0x58]
+      - [0x2B, 0x0F]
+      - [0xE0, 0x00]
+      - [0xE6, 0x02]
+      - [0xE7, 0x0C]
+
+# Special LVGL settings required for this display.
+# The panel driver does no hardware transform, so rotation is done in LVGL
+# (on the ESP32-P4 this is PPA-accelerated, so it is effectively free).
+#
+# NOTE: native scan order is portrait 800x1280. Pass rotation: "270" from the
+# device config for the usual 1280x800 landscape mounting — confirmed upright on
+# real hardware. Use "90" if your panel is mounted the other way up.
+lvgl:
+  rotation: ${rotation | default("0")}
+
+# -------------------------------------------
+# Audio devices
+# -------------------------------------------
+# ES8311 codec on the shared I2C bus, driving the NS4150B amp on the MX1.25
+# speaker header, plus the onboard microphone. There is no ES7210 on this board
+# — the microphone is the codec's own analog input.
+i2s_audio:
+  - id: audio_bus
+    i2s_mclk_pin: GPIO13
+    i2s_lrclk_pin: GPIO10
+    i2s_bclk_pin: GPIO12
+
+audio_dac:
+  - platform: es8311
+    id: es8311_dac
+    i2c_id: bus_a
+    address: 0x18
+
+microphone:
+  - platform: i2s_audio
+    id: my_microphone
+    i2s_audio_id: audio_bus
+    i2s_din_pin: GPIO11
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    adc_type: external
+
+speaker:
+  - platform: i2s_audio
+    id: my_speaker
+    i2s_audio_id: audio_bus
+    i2s_dout_pin: GPIO9
+    audio_dac: es8311_dac
+    dac_type: external
+    channel: mono
+    buffer_duration: 100ms
+    bits_per_sample: 16bit
+    sample_rate: 48000
+
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: my_speaker
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: never
+      - id: media_mixing_input
+        timeout: never
+
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    sample_rate: 48000
+    bits_per_sample: 16
+
+switch:
+  - platform: gpio
+    id: audio_amplifier
+    name: Speaker Enable
+    icon: "mdi:speaker"
+    entity_category: config
+    pin: GPIO53  # BSP_POWER_AMP_IO, active high
+    restore_mode: RESTORE_DEFAULT_ON
