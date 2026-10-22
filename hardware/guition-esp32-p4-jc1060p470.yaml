@@ -96,7 +96,8 @@ light:
     name: Display Backlight
     icon: mdi:lightbulb-on
     id: display_backlight
-    restore_mode: ALWAYS_ON
+    initial_state:
+      state: on
     default_transition_length: 0s
     gamma_correct: 1.0
 
